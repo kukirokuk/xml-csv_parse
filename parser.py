@@ -18,7 +18,7 @@ pymongo- MongoDB python client, pytest and pytest-benchmark for testing.
 To do this you just need to run --> pip install -r requirements.txt
 To use this parser just run --> python parser.py <your file_to_parse.xml, .csv or .txt>. 
 File to parse must be in the same directory with parser.py.
-There are two awailable xml parser versions, you can choose "1" or "2"
+There are two awailable xml_parser_version, you can choose "1" or "2"
 """
 
 # default mongo db name
@@ -51,9 +51,9 @@ def parse_csv(file_name):
                     attrb_dict = None
             if attrb_dict is not None:
                 items_list.append(attrb_dict)
-    write_to_mongo(items_list)
-    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
     number_of_items = len(items_list)
+    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    write_to_mongo_csv(items_list)
 
 def parse_xml_2(file_name):
     global number_of_items
@@ -61,9 +61,9 @@ def parse_xml_2(file_name):
     with open(file_name) as f:
         data = xmltodict.parse(f.read())
     items_list = data['DataFeeds']['item_data']
-    write_to_mongo(items_list)
-    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
     number_of_items =  len(items_list)
+    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    write_to_mongo_xls(items_list)
 
 def parse_xml_1(file_name):
     global number_of_items
@@ -71,17 +71,24 @@ def parse_xml_1(file_name):
     events = ("start", "end")
     context = ET.iterparse(file_name, events=events)
     items_list = recur(context)['DataFeeds']['item_data']
-    # items_list = []
-    write_to_mongo(items_list)
-    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
     number_of_items = len(items_list)
+    print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    write_to_mongo_csv(items_list)
 
 def create_db():
     client = MongoClient(port=27017)
     db = client[db_name]
     return db
 
-def write_to_mongo(data):
+def write_to_mongo_xls(data):
+    # create mongo db and insert all data
+    db = create_db()
+    for item in data:
+        item['id'] = item['item_basic_data']['item_unique_id']
+    f = db.items.insert_many(data)
+    print '{} item(s) inserted into {}'.format(len(f.inserted_ids), db_name)
+
+def write_to_mongo_csv(data):
     # create mongo db and insert all data
     db = create_db()
     f = db.items.insert_many(data)
@@ -107,17 +114,26 @@ def recur(context, cur_elem=None):
 
 def xml_benchmark_1():
     run_time = timeit.timeit("parse_xml_1(file_to_parse)", setup="from __main__ import parse_xml_1, file_to_parse", number=1)
-    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    time = run_time * (1000000/number_of_items)
+    size = 3.1 * (1000000/number_of_items)
+    print 'file was parsed and stored into db at {} seconds'.format(run_time)
+    print 'it will take near {} minutes to parse 1000000 products xml file with size {} megabytes'.format(time/60, size)
     print '{} seconds per item'.format(run_time/number_of_items)
 
 def xml_benchmark_2():
     run_time = timeit.timeit("parse_xml_2(file_to_parse)", setup="from __main__ import parse_xml_2, file_to_parse", number=1)
-    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    time = run_time * (1000000/number_of_items)
+    size = 3.1 * (1000000/number_of_items)
+    print 'file was parsed and stored into db at {} seconds'.format(run_time)
+    print 'it will take near {} minutes to parse 1000000 products file xml with size {} megabytes'.format(time/60, size)
     print '{} seconds per item'.format(run_time/number_of_items)
 
 def csv_benchmark():
     run_time = timeit.timeit("parse_csv(file_to_parse)", setup="from __main__ import parse_csv, file_to_parse", number=1)
-    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    time = run_time * (1000000/number_of_items)
+    size = 3.1 * (1000000/number_of_items)
+    print 'file was parsed and stored into db at {} seconds'.format(run_time)
+    print 'it will take near {} minutes to parse 1000000 products csv file with size {} megabytes'.format(time/60, size)
     print '{} seconds per item'.format(run_time/number_of_items)
 
 def run_parser():
@@ -140,5 +156,5 @@ def run_benchmark():
 
 if __name__ == "__main__":
 
-    run_parser()
+    # run_parser()
     run_benchmark()
