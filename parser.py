@@ -63,7 +63,7 @@ def parse_xml_2(file_name):
     items_list = data['DataFeeds']['item_data']
     number_of_items =  len(items_list)
     print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
-    write_to_mongo_xls(items_list)
+    write_to_mongo_xml(items_list)
 
 def parse_xml_1(file_name):
     global number_of_items
@@ -73,26 +73,27 @@ def parse_xml_1(file_name):
     items_list = recur(context)['DataFeeds']['item_data']
     number_of_items = len(items_list)
     print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
-    write_to_mongo_csv(items_list)
+    write_to_mongo_xml(items_list)
 
 def create_db():
     client = MongoClient(port=27017)
     db = client[db_name]
     return db
 
-def write_to_mongo_xls(data):
+def write_to_mongo_xml(data):
     # create mongo db and insert all data
     db = create_db()
     for item in data:
         item['id'] = item['item_basic_data']['item_unique_id']
-    f = db.items.insert_many(data)
-    print '{} item(s) inserted into {}'.format(len(f.inserted_ids), db_name)
+        f = db.items.insert_one(item)
+    # f = db.items.insert_many(data)
+    print '{} item(s) inserted into {}'.format(len(data), db_name)
 
 def write_to_mongo_csv(data):
     # create mongo db and insert all data
     db = create_db()
     f = db.items.insert_many(data)
-    print '{} item(s) inserted into {}'.format(len(f.inserted_ids), db_name)
+    print '{} item(s) inserted into {}'.format(len(data), db_name)
 
 def recur(context, cur_elem=None):
     items = defaultdict(list)
@@ -131,7 +132,7 @@ def xml_benchmark_2():
 def csv_benchmark():
     run_time = timeit.timeit("parse_csv(file_to_parse)", setup="from __main__ import parse_csv, file_to_parse", number=1)
     time = run_time * (1000000/number_of_items)
-    size = 3.1 * (1000000/number_of_items)
+    size = 7.5 * (1000000/number_of_items)
     print 'file was parsed and stored into db at {} seconds'.format(run_time)
     print 'it will take near {} minutes to parse 1000000 products csv file with size {} megabytes'.format(time/60, size)
     print '{} seconds per item'.format(run_time/number_of_items)
