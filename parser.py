@@ -83,24 +83,33 @@ def create_db():
 def write_to_mongo_xml(data):
     # create mongo db and insert all data
     db = create_db()
-    db.items.create_index([("id", ASCENDING)])
+    db.xml_items.create_index([("id", ASCENDING)])
     counter = 0
     for item in data:
         item['id'] = item['item_basic_data']['item_unique_id']
-        found = db.items.find({'id': item['id'] }).limit(1)
+        found = db.xml_items.find({'id': item['id'] })
         if found.count() > 0:
             # older duplicates if founded are replaced by new item
             counter += found.count()
-            result = db.items.delete_many({"id": item['id']})
-        f = db.items.insert_one(item)
-    print 'deleted {} duplicates'.format(counter)
+            result = db.xml_items.delete_many({"id": item['id']})
+        f = db.xml_items.insert_one(item)
     print '{} item(s) inserted into {}'.format(len(data), db_name)
+    print 'deleted {} duplicates'.format(counter)
 
 def write_to_mongo_csv(data):
     # create mongo db and insert all data
     db = create_db()
-    f = db.items.insert_many(data)
+    db.csv_items.create_index([("id", ASCENDING)])
+    counter = 0
+    for item in data:
+        found = db.csv_items.find({'id': item['id'] })
+        if found.count() > 0:
+            # older duplicates if founded are replaced by new item
+            counter += found.count()
+            result = db.csv_items.delete_many({"id": item['id']})
+        f = db.csv_items.insert_one(item)
     print '{} item(s) inserted into {}'.format(len(data), db_name)
+    print 'deleted {} duplicates'.format(counter)
 
 def recur(context, cur_elem=None):
     items = defaultdict(list)
