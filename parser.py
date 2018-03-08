@@ -8,15 +8,15 @@ import xmltodict
 from pymongo import MongoClient
 
 file_to_parse = sys.argv[1]
-# import pdb; pdb.set_trace()
 
 """
-This python module parse csv, txt or xml files in predefined schemas
-To use this parser just run python parser.py <your file_to_parse.xml, .csv or .txt> 
-that must be in the same directory with parser.py.
+This python module parse csv, txt or xml files in predefined schemas.
+First you need to install few side libs: xmltodict- custom xml parser,
+pymongo- MongoDB python client, pytest and pytest-benchmark for testing.
+To do this you just need to run --> pip install -r requirements.txt
+To use this parser just run --> python parser.py <your file_to_parse.xml, .csv or .txt>. 
+File to parse must be in the same directory with parser.py.
 There are two awailable xml parser versions, you can choose "1" or "2"
-To use it you also need to pip install two side libs: xmltodict- custom xml parser
-and pymongo- MongoDB python client.
 """
 
 # default mongo db name
