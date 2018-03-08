@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from collections import defaultdict
 import csv
+import pytest_benchmark
 import json
 import sys
+import timeit
 import xml.etree.ElementTree as ET
 import xmltodict
 from pymongo import MongoClient
@@ -25,8 +27,11 @@ db_name = "products_db"
 # choose "1" or "2" xml parser version
 xml_parser_version = "1"
 
-def parse_csv_1(file_name):
 
+number_of_items = None
+
+def parse_csv(file_name):
+    global number_of_items
     # csv parser based on standard csv lib add id and address fields
     with open(file_name, "r") as file:
         reader = csv.reader(file)
@@ -48,16 +53,20 @@ def parse_csv_1(file_name):
                 items_list.append(attrb_dict)
     write_to_mongo(items_list)
     print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    number_of_items = len(items_list)
 
 def parse_xml_2(file_name):
+    global number_of_items
     # 2nd version of iterative parser based on xmldict lib 
     with open(file_name) as f:
         data = xmltodict.parse(f.read())
     items_list = data['DataFeeds']['item_data']
     write_to_mongo(items_list)
     print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    number_of_items =  len(items_list)
 
 def parse_xml_1(file_name):
+    global number_of_items
     # 1st version of iterative parser based on standart xml lib 
     events = ("start", "end")
     context = ET.iterparse(file_name, events=events)
@@ -65,6 +74,7 @@ def parse_xml_1(file_name):
     # items_list = []
     write_to_mongo(items_list)
     print '{} item(s) parsed from {}'.format(len(items_list), file_to_parse)
+    number_of_items = len(items_list)
 
 def create_db():
     client = MongoClient(port=27017)
@@ -95,12 +105,40 @@ def recur(context, cur_elem=None):
 
     return { k: v[0] if len(v) == 1 else v for k, v in items.items() }
 
-if __name__ == "__main__":
+def xml_benchmark_1():
+    run_time = timeit.timeit("parse_xml_1(file_to_parse)", setup="from __main__ import parse_xml_1, file_to_parse", number=1)
+    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    print '{} seconds per item'.format(run_time/number_of_items)
 
+def xml_benchmark_2():
+    run_time = timeit.timeit("parse_xml_2(file_to_parse)", setup="from __main__ import parse_xml_2, file_to_parse", number=1)
+    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    print '{} seconds per item'.format(run_time/number_of_items)
+
+def csv_benchmark():
+    run_time = timeit.timeit("parse_csv(file_to_parse)", setup="from __main__ import parse_csv, file_to_parse", number=1)
+    print 'file was parsed and stored into db for {} seconds'.format(run_time)
+    print '{} seconds per item'.format(run_time/number_of_items)
+
+def run_parser():
     if file_to_parse.split('.')[1] in ['txt', 'csv']: 
-        parse_csv_1(file_to_parse)
+        parse_csv(file_to_parse)
 
     elif file_to_parse.split('.')[1] in ['xml']:
 
         func = globals()['parse_xml_{}'.format(xml_parser_version)]
         func(file_to_parse)
+
+def run_benchmark():
+    if file_to_parse.split('.')[1] in ['txt', 'csv']: 
+        csv_benchmark()
+
+    elif file_to_parse.split('.')[1] in ['xml']:
+
+        func = globals()['xml_benchmark_{}'.format(xml_parser_version)]
+        func()
+
+if __name__ == "__main__":
+
+    run_parser()
+    run_benchmark()
