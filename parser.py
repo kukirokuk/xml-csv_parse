@@ -7,7 +7,7 @@ import sys
 import timeit
 import xml.etree.ElementTree as ET
 import xmltodict
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 
 file_to_parse = sys.argv[1]
 
@@ -83,10 +83,17 @@ def create_db():
 def write_to_mongo_xml(data):
     # create mongo db and insert all data
     db = create_db()
+    db.items.create_index([("id", ASCENDING)])
+    counter = 0
     for item in data:
         item['id'] = item['item_basic_data']['item_unique_id']
+        found = db.items.find({'id': item['id'] }).limit(1)
+        if found.count() > 0:
+            # older duplicates if founded are replaced by new item
+            counter += found.count()
+            result = db.items.delete_many({"id": item['id']})
         f = db.items.insert_one(item)
-    # f = db.items.insert_many(data)
+    print 'deleted {} duplicates'.format(counter)
     print '{} item(s) inserted into {}'.format(len(data), db_name)
 
 def write_to_mongo_csv(data):
