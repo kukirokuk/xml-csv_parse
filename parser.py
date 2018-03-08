@@ -94,7 +94,7 @@ def write_to_mongo_xml(data):
             result = db.xml_items.delete_many({"id": item['id']})
         f = db.xml_items.insert_one(item)
     print '{} item(s) inserted into {}'.format(len(data), db_name)
-    print 'deleted {} duplicates'.format(counter)
+    print '{} duplicate(s) deleted'.format(counter)
 
 def write_to_mongo_csv(data):
     # create mongo db and insert all data
@@ -109,7 +109,7 @@ def write_to_mongo_csv(data):
             result = db.csv_items.delete_many({"id": item['id']})
         f = db.csv_items.insert_one(item)
     print '{} item(s) inserted into {}'.format(len(data), db_name)
-    print 'deleted {} duplicates'.format(counter)
+    print '{} duplicate(s) deleted'.format(counter)
 
 def recur(context, cur_elem=None):
     items = defaultdict(list)
@@ -129,47 +129,31 @@ def recur(context, cur_elem=None):
 
     return { k: v[0] if len(v) == 1 else v for k, v in items.items() }
 
-def xml_benchmark_1():
-    run_time = timeit.timeit("parse_xml_1(file_to_parse)", setup="from __main__ import parse_xml_1, file_to_parse", number=1)
+def benchmark(parser_type):
+    run_time = timeit.timeit("parse_{}(file_to_parse)".format(parser_type), setup="from __main__ import parse_{}, file_to_parse".format(parser_type), number=1)
     time = run_time * (1000000/number_of_items)
-    size = 3.1 * (1000000/number_of_items)
+    file_size = 3.1 if 'xml' in parser_type else 7.5 if 'csv' in parser_type  else 0
+    size = file_size * (1000000/number_of_items)
     print 'file was parsed and stored into db at {} seconds'.format(run_time)
-    print 'it will take near {} minutes to parse 1000000 products xml file with size {} megabytes'.format(time/60, size)
+    print 'it will take near {} minutes to parse 1000000 products {} file with size {} megabytes'.format(time/60, parser_type[:3], size)
     print '{} seconds per item'.format(run_time/number_of_items)
 
-def xml_benchmark_2():
-    run_time = timeit.timeit("parse_xml_2(file_to_parse)", setup="from __main__ import parse_xml_2, file_to_parse", number=1)
-    time = run_time * (1000000/number_of_items)
-    size = 3.1 * (1000000/number_of_items)
-    print 'file was parsed and stored into db at {} seconds'.format(run_time)
-    print 'it will take near {} minutes to parse 1000000 products file xml with size {} megabytes'.format(time/60, size)
-    print '{} seconds per item'.format(run_time/number_of_items)
-
-def csv_benchmark():
-    run_time = timeit.timeit("parse_csv(file_to_parse)", setup="from __main__ import parse_csv, file_to_parse", number=1)
-    time = run_time * (1000000/number_of_items)
-    size = 7.5 * (1000000/number_of_items)
-    print 'file was parsed and stored into db at {} seconds'.format(run_time)
-    print 'it will take near {} minutes to parse 1000000 products csv file with size {} megabytes'.format(time/60, size)
-    print '{} seconds per item'.format(run_time/number_of_items)
+file_ext = file_to_parse.split('.')[1]
 
 def run_parser():
-    if file_to_parse.split('.')[1] in ['txt', 'csv']: 
+    if file_ext in ['txt', 'csv']:
         parse_csv(file_to_parse)
 
-    elif file_to_parse.split('.')[1] in ['xml']:
-
+    elif file_ext in ['xml']:
         func = globals()['parse_xml_{}'.format(xml_parser_version)]
         func(file_to_parse)
 
 def run_benchmark():
-    if file_to_parse.split('.')[1] in ['txt', 'csv']: 
-        csv_benchmark()
+    if file_ext in ['txt', 'csv']:
+        benchmark('csv')
 
-    elif file_to_parse.split('.')[1] in ['xml']:
-
-        func = globals()['xml_benchmark_{}'.format(xml_parser_version)]
-        func()
+    elif file_ext == 'xml':
+        benchmark('xml_{}'.format(xml_parser_version))
 
 if __name__ == "__main__":
 
