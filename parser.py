@@ -2,7 +2,6 @@
 from collections import defaultdict
 import csv
 import memory_profiler
-import pytest_benchmark
 import json
 import sys
 import timeit
@@ -13,9 +12,10 @@ from pymongo import MongoClient, ASCENDING
 file_to_parse = sys.argv[1]
 
 """
+
 This python module parse csv, txt or xml files in predefined schemas.
 First you need to install few side libs: xmltodict- custom xml parser,
-pymongo- MongoDB python client, pytest and pytest-benchmark for testing.
+pymongo- MongoDB python client, pytest for testing.
 To do this you just need to run --> pip install -r requirements.txt.
 To use this parser just run --> python parser.py <your file_to_parse.xml, .csv or .txt>. 
 File to parse must be in the same directory with parser.py.
@@ -24,11 +24,17 @@ If you want to benchmark memory usage then uncomment @profile decorator
 of run_parser() function and comment run_benchmark() function at the end of file,
 then run -->
 python -m memory_profiler parser.py <your file_to_parse.xml, .csv or .txt>
+To run tests uncomment db_name = "pytest_db" and run --> 
+python -m pytest -v pytest/test.py
 
 """
 
 # default mongo db name
 db_name = "products_db"
+
+# test db_name
+# db_name = "pytest_db"
+
 
 # choose "1" or "2" xml parser version
 xml_parser_version = "1"
@@ -144,7 +150,6 @@ def benchmark(parser_type):
     print 'it will take near {} minutes to parse 1000000 products {} file with size {} megabytes'.format(time/60, parser_type[:3], size)
     print '{} seconds per item'.format(run_time/number_of_items)
 
-file_ext = file_to_parse.split('.')[1]
 
 # @profile
 def run_parser():
@@ -154,6 +159,7 @@ def run_parser():
     elif file_ext in ['xml']:
         func = globals()['parse_xml_{}'.format(xml_parser_version)]
         func(file_to_parse)
+
 def run_benchmark():
     if file_ext in ['txt', 'csv']:
         benchmark('csv')
@@ -163,5 +169,6 @@ def run_benchmark():
 
 if __name__ == "__main__":
 
+    file_ext = file_to_parse.split('.')[1]
     run_parser()
     run_benchmark()
